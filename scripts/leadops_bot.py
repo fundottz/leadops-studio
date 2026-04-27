@@ -235,25 +235,83 @@ class TelegramBot:
             return "тёплый", points
         return "холодный", points
 
+    def niche_scenario(self, answers: dict[str, str]) -> dict[str, str]:
+        niche = answers.get("niche", "ваша ниша")
+        channel = answers.get("channels", "канал заявок")
+        response_time = answers.get("response_time", "текущая скорость ответа")
+        pain = answers.get("pain", "потери заявок")
+
+        if "клиника" in niche or "стоматология" in niche or "косметология" in niche:
+            return {
+                "problem": f"заявки из {channel} могут остывать, если первый ответ занимает {response_time}; особенно провисают сценарии: {pain}.",
+                "auto_reply": "Здравствуйте! Получили заявку. Чтобы администратор быстрее подобрал время и специалиста, уточните пару деталей.",
+                "questions": "услуга, срочность, удобный филиал/район, удобное время связи",
+                "manager_card": "услуга, срочность, район/филиал, контакт и рекомендация ответить до 5 минут",
+            }
+        if "ремонт" in niche or "кухни" in niche or "окна" in niche:
+            return {
+                "problem": f"клиент сравнивает подрядчиков, и при ответе {response_time} заявка легко уходит конкуренту; главная боль: {pain}.",
+                "auto_reply": "Здравствуйте! Получили заявку. Чтобы менеджер быстрее сориентировал по срокам и стоимости, уточните несколько деталей.",
+                "questions": "тип работ, район объекта, сроки старта, примерный бюджет, есть ли размеры/план",
+                "manager_card": "тип работ, локация, срок, бюджет, материалы и следующий шаг для менеджера",
+            }
+        if "юрид" in niche:
+            return {
+                "problem": f"запросы требуют быстрой реакции, но без юридических консультаций в боте; при ответе {response_time} клиент может уйти к другому исполнителю.",
+                "auto_reply": "Здравствуйте! Получили обращение. Уточним несколько вводных и передадим специалисту.",
+                "questions": "тип вопроса, срочность, регион, удобный способ связи",
+                "manager_card": "суть обращения, срочность, регион, контакт и пометка, что нужен специалист",
+            }
+        if "недвиж" in niche:
+            return {
+                "problem": f"заявки по недвижимости быстро теряют актуальность, если первый контакт занимает {response_time}; боль: {pain}.",
+                "auto_reply": "Здравствуйте! Получили заявку. Уточним пару параметров, чтобы менеджер сразу подобрал релевантные варианты.",
+                "questions": "тип объекта, район, бюджет, срок покупки/аренды, ипотека/наличные",
+                "manager_card": "тип объекта, район, бюджет, срок, контакт и приоритет лида",
+            }
+        return {
+            "problem": f"заявки из {channel} могут теряться, если первый ответ занимает {response_time}; главная боль: {pain}.",
+            "auto_reply": "Здравствуйте! Получили заявку. Уточним несколько деталей и передадим менеджеру уже подготовленный запрос.",
+            "questions": "услуга/запрос, срочность, бюджет или объём, удобный способ связи",
+            "manager_card": "запрос, срочность, квалификация, контакт и рекомендуемый следующий шаг",
+        }
+
+    def build_demo_preview(self, answers: dict[str, str], status: str) -> str:
+        scenario = self.niche_scenario(answers)
+        return (
+            "Готово — собрали вводные и пример flow под ваш кейс.\n\n"
+            f"Похоже, основная точка потерь: {scenario['problem']}\n\n"
+            "Как будет работать автоответ:\n"
+            f"1. Клиент оставляет заявку через: {answers.get('channels', 'ваш канал заявок')}.\n"
+            f"2. Через 1–2 минуты получает сообщение:\n“{scenario['auto_reply']}”\n"
+            f"3. Бот уточняет: {scenario['questions']}.\n"
+            f"4. Менеджер получает карточку: {scenario['manager_card']}.\n\n"
+            f"По вашим ответам интерес выглядит как: {status}. "
+            "Можно показать такой сценарий на вашем примере и оценить пилот на 2 недели."
+        )
+
     def finish_flow(self, chat_id: int) -> None:
         session = self.state.get("sessions", {}).get(str(chat_id), {})
         answers: dict[str, str] = session.get("answers", {})
         lead_status, points = self.score(answers)
-        preview = (
-            "Понял. Для вашей ниши demo-сценарий будет такой:\n\n"
-            "1. Клиент оставляет заявку.\n"
-            "2. Бот отвечает за 1–2 минуты.\n"
-            "3. Уточняет услугу, срочность, удобный контакт и детали заказа.\n"
-            "4. Менеджер получает карточку лида в Telegram/CRM.\n\n"
-            "Если хотите, можем показать такой flow на вашем примере и оценить, где сейчас теряются заявки."
-        )
+        preview = self.build_demo_preview(answers, lead_status)
         self.send(
             chat_id,
             preview,
-            [[("Показать demo на моём примере", "request_demo")], [("Узнать стоимость пилота", "pilot_info")]],
+            [
+                [("Получить demo под мой сайт", "request_demo")],
+                [("Узнать стоимость пилота", "pilot_info")],
+                [("Связаться с человеком", "human_request")],
+            ],
         )
         self.store_lead(chat_id, answers, lead_status, points)
         self.notify_manager(chat_id, answers, lead_status, points)
+        self.state.setdefault("last_leads", {})[str(chat_id)] = {
+            "answers": answers,
+            "status": lead_status,
+            "score": points,
+            "finished_at": int(time.time()),
+        }
         self.state.get("sessions", {}).pop(str(chat_id), None)
         self.save_state()
 
@@ -296,9 +354,21 @@ class TelegramBot:
     def request_demo(self, chat_id: int) -> None:
         self.send(
             chat_id,
-            "Супер. Напишите в одном сообщении: нишу, сайт/канал заявок и что сейчас не устраивает. "
-            "Мы подготовим короткий demo-сценарий под ваш пример.",
+            "Супер. Вводные уже собраны.\n\n"
+            "Пришлите только сайт или ссылку на форму/квиз, если хотите пример ближе к вашей реальной воронке. "
+            "Если ссылки нет — можем показать demo на типовом сценарии для вашей ниши.",
         )
+
+    def human_request(self, chat_id: int) -> None:
+        self.send(
+            chat_id,
+            "Приняли. Передадим запрос человеку и вернёмся с коротким следующим шагом: demo, оценка пилота или разбор воронки.",
+        )
+        lead = self.state.get("last_leads", {}).get(str(chat_id), {})
+        answers = lead.get("answers", {}) if isinstance(lead, dict) else {}
+        status = lead.get("status", "ручной запрос") if isinstance(lead, dict) else "ручной запрос"
+        score = int(lead.get("score", 0)) if isinstance(lead, dict) else 0
+        self.notify_manager(chat_id, answers, f"{status}; просит человека", score)
 
     def handle_text(self, message: dict[str, Any]) -> None:
         chat_id = message["chat"]["id"]
@@ -328,6 +398,8 @@ class TelegramBot:
             self.pilot_info(chat_id)
         elif data == "request_demo":
             self.request_demo(chat_id)
+        elif data == "human_request":
+            self.human_request(chat_id)
         elif data.startswith("answer:"):
             _, step_raw, idx_raw = data.split(":", 2)
             self.handle_answer(chat_id, int(step_raw), int(idx_raw))
