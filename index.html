@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Мини-контакт-центр для заявок в Telegram/WhatsApp</title>
+  <meta name="description" content="Демо: клиент написал в Telegram/WhatsApp/Авито → автоответ → уточнение деталей → карточка заявки владельцу." />
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --text:#eef3ff; --muted:#a8b3cf; --accent:#67e8f9; --accent2:#a7f3d0; --danger:#fecaca; }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#080c18,#111a35);color:var(--text);line-height:1.45}
+    .wrap{max-width:1120px;margin:0 auto;padding:48px 20px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}.badge{display:inline-block;color:#07111f;background:var(--accent2);padding:6px 10px;border-radius:99px;font-weight:700;font-size:13px}
+    h1{font-size:48px;line-height:1.05;margin:18px 0 16px}p.lead{font-size:20px;color:var(--muted);margin:0 0 24px}.cta{display:flex;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:14px 18px;font-weight:800;cursor:pointer}.primary{background:var(--accent);color:#06111d}.secondary{background:#24304e;color:var(--text)}
+    .card{background:rgba(18,26,51,.9);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    label{display:block;margin:12px 0 6px;color:var(--muted);font-size:14px}input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid #33415f;background:#0b1226;color:var(--text)}textarea{min-height:86px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}.step{background:#0f1730;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px}.step b{color:var(--accent)}
+    .demo{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.bubble{background:#0f1730;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.08)}.bubble.client{border-color:rgba(103,232,249,.35)}.bubble.manager{border-color:rgba(167,243,208,.35)}
+    .small{font-size:13px;color:var(--muted)}.hidden{display:none}.footer{margin-top:40px;color:var(--muted);font-size:14px}.warn{color:var(--danger)}
+    @media(max-width:850px){.hero,.demo{grid-template-columns:1fr}h1{font-size:36px}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <span class="badge">Для малого сервисного бизнеса с дорогими заявками</span>
+        <h1>Мини-контакт-центр для заявок в Telegram/WhatsApp</h1>
+        <p class="lead">Пока вы на объекте, замере или в дороге, система отвечает клиенту за 1–2 минуты, уточняет детали заказа и присылает вам готовую карточку заявки.</p>
+        <div class="cta">
+          <button class="btn primary" onclick="document.querySelector('#demoForm').scrollIntoView({behavior:'smooth'})">Показать demo</button>
+          <button class="btn secondary" onclick="alert('Следующий шаг: 10-минутный разбор, где теряются заявки и что можно автоматизировать.')">Разобрать заявки</button>
+        </div>
+      </div>
+      <form id="demoForm" class="card">
+        <h2>Демо-заявка</h2>
+        <label>Сегмент</label>
+        <select id="segment">
+          <option value="furniture">Мебель / кухни / шкафы</option>
+          <option value="repair">Ремонт / прораб / бригада</option>
+          <option value="home">Шторы / двери / кондиционеры</option>
+        </select>
+        <label>Имя клиента</label>
+        <input id="name" placeholder="Анна" value="Анна" />
+        <label>Контакт</label>
+        <input id="contact" placeholder="+7... / @username" value="@client_demo" />
+        <label>Что нужно?</label>
+        <textarea id="need">Хочу рассчитать заказ и понять сроки</textarea>
+        <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Оставить заявку</button>
+        <p class="small">Это демо: данные никуда не отправляются.</p>
+      </form>
+    </section>
+
+    <section class="grid">
+      <div class="step"><b>1. Заявка</b><br/>Telegram, WhatsApp, Авито, сайт, форма.</div>
+      <div class="step"><b>2. Автоответ</b><br/>Клиент получает ответ, пока владелец занят.</div>
+      <div class="step"><b>3. Карточка</b><br/>Бот собирает детали и присылает карточку заявки.</div>
+    </section>
+
+    <section id="result" class="demo hidden">
+      <div class="card">
+        <h2>Что видит клиент</h2>
+        <div id="clientChat"></div>
+      </div>
+      <div class="card">
+        <h2>Что получает владелец</h2>
+        <div id="managerCard"></div>
+      </div>
+    </section>
+
+    <section class="footer">
+      <p><b>Пилот:</b> 2 недели, 5–15 тыс ₽ для первых проверок. Цель — не терять заявки, пока владелец занят.</p>
+      <p class="warn">Важно: это не замена владельца в продаже. Система забирает первый рутинный слой: быстрый ответ, детали, приоритет.</p>
+    </section>
+  </main>
+
+  <script>
+    const scenarios = {
+      furniture: {
+        questions: ['Что нужно сделать: шкаф, кухня, мебель в ванную?', 'Есть размеры или фото?', 'Когда нужен замер/монтаж?', 'Есть примерный бюджет?', 'Как удобнее связаться?'],
+        managerTitle: 'Новая заявка: мебель / кухня / шкаф',
+        recommendation: 'Высокий приоритет: клиент сравнивает исполнителей, ответить до 5 минут.'
+      },
+      repair: {
+        questions: ['Какой объект и площадь?', 'Что нужно сделать?', 'Когда планируете начать?', 'Есть проект/смета?', 'Какой примерный бюджет?'],
+        managerTitle: 'Новая заявка: ремонт / прораб',
+        recommendation: 'Горячая заявка: уточнить вводные и предложить короткий созвон/выезд.'
+      },
+      home: {
+        questions: ['Что нужно: шторы, двери, кондиционеры?', 'Сколько помещений/единиц?', 'Есть размеры или фото?', 'Когда нужно установить?', 'Как удобнее связаться?'],
+        managerTitle: 'Новая заявка: дом/ремонтные работы',
+        recommendation: 'Ответить быстро: клиент, вероятно, собирает 2–3 предложения.'
+      }
+    };
+    document.querySelector('#demoForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const seg = document.querySelector('#segment').value;
+      const s = scenarios[seg];
+      const name = document.querySelector('#name').value || 'Клиент';
+      const contact = document.querySelector('#contact').value || 'контакт не указан';
+      const need = document.querySelector('#need').value || 'запрос не указан';
+      document.querySelector('#clientChat').innerHTML = `
+        <div class="bubble client">Здравствуйте, ${name}! Получили вашу заявку.</div>
+        <div class="bubble client">Чтобы быстрее сориентировать по срокам и стоимости, уточните несколько деталей:</div>
+        ${s.questions.map((q,i)=>`<div class="bubble">${i+1}. ${q}</div>`).join('')}
+        <div class="bubble client">Спасибо! Передали заявку владельцу/менеджеру. Он свяжется с вами уже с понятным контекстом.</div>`;
+      document.querySelector('#managerCard').innerHTML = `
+        <div class="bubble manager"><b>${s.managerTitle}</b></div>
+        <div class="bubble">Клиент: ${name}<br/>Контакт: ${contact}<br/>Запрос: ${need}<br/>Источник: demo landing</div>
+        <div class="bubble manager"><b>Рекомендация:</b> ${s.recommendation}</div>`;
+      document.querySelector('#result').classList.remove('hidden');
+      document.querySelector('#result').scrollIntoView({behavior:'smooth'});
+    });
+  </script>
+</body>
+</html>
