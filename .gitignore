@@ -10,3 +10,4 @@ __pycache__/
 data/bot-state.json
 data/leads.jsonl
 data/bot.log
+data/bot.pid

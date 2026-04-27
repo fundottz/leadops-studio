@@ -272,6 +272,11 @@ class TelegramBot:
     def notify_manager(self, chat_id: int, answers: dict[str, str], status: str, points: int) -> None:
         if not self.manager_chat_id:
             return
+        if str(self.manager_chat_id) == str(chat_id):
+            # In local tests the owner may be both the client and manager.
+            # Do not leak the internal lead card into the client conversation.
+            print(f"manager_notify_skipped_same_chat chat_id={chat_id} status={status} score={points}", flush=True)
+            return
         text = (
             "Новый лид LeadOps Studio\n\n"
             f"Статус: {status} ({points} баллов)\n"
