@@ -75,6 +75,7 @@ COMMANDS = [
     {"command": "demo", "description": "Собрать demo-сценарий"},
     {"command": "audit", "description": "Разобрать обработку заявок"},
     {"command": "pilot", "description": "Узнать про пилот"},
+    {"command": "reply", "description": "Ответить клиенту: /reply chat_id текст"},
 ]
 
 
@@ -160,6 +161,9 @@ class TelegramBot:
         if rows:
             payload["reply_markup"] = self.keyboard(rows)
         return self.api("sendMessage", payload)
+
+    def is_manager_chat(self, chat_id: int | str) -> bool:
+        return bool(self.manager_chat_id) and str(chat_id) == str(self.manager_chat_id)
 
     def answer_callback(self, callback_id: str) -> None:
         self.api("answerCallbackQuery", {"callback_query_id": callback_id}, timeout=10)
@@ -424,8 +428,64 @@ class TelegramBot:
             "Рекомендация: если лид тёплый/горячий — подключиться и предложить demo/пилот."
         )
         result = self.send(self.manager_chat_id, text)
+        if result.get("ok"):
+            message_id = result.get("result", {}).get("message_id")
+            if message_id:
+                self.state.setdefault("manager_threads", {})[str(message_id)] = str(chat_id)
+                self.save_state()
         if not result.get("ok"):
             print(f"manager_notify_failed: {result.get('description', 'unknown error')}", file=sys.stderr)
+
+    def notify_manager_client_message(self, chat_id: int, text: str) -> None:
+        if not self.manager_chat_id or self.is_manager_chat(chat_id):
+            return
+        result = self.send(
+            self.manager_chat_id,
+            "Сообщение клиента LeadOps Studio\n\n"
+            f"Telegram chat_id: {chat_id}\n"
+            f"Текст: {text}\n\n"
+            f"Ответить можно reply на это сообщение или командой:\n/reply {chat_id} ваш текст",
+        )
+        if result.get("ok"):
+            message_id = result.get("result", {}).get("message_id")
+            if message_id:
+                self.state.setdefault("manager_threads", {})[str(message_id)] = str(chat_id)
+                self.save_state()
+
+    def relay_manager_message(self, message: dict[str, Any], text: str) -> bool:
+        chat_id = message["chat"]["id"]
+        if not self.is_manager_chat(chat_id):
+            return False
+
+        client_chat_id: str | None = None
+        body = ""
+
+        if text.startswith("/reply "):
+            parts = text.split(maxsplit=2)
+            if len(parts) < 3:
+                self.send(chat_id, "Формат: /reply <chat_id> <текст>")
+                return True
+            client_chat_id, body = parts[1], parts[2]
+        else:
+            reply_to = message.get("reply_to_message") or {}
+            reply_message_id = reply_to.get("message_id")
+            if reply_message_id is not None:
+                client_chat_id = self.state.get("manager_threads", {}).get(str(reply_message_id))
+                body = text
+
+        if not client_chat_id:
+            return False
+        if not body.strip():
+            self.send(chat_id, "Пустой ответ не отправил.")
+            return True
+
+        result = self.send(client_chat_id, body.strip())
+        if result.get("ok"):
+            self.store_event("bot_manager_reply", client_chat_id, {"manager_chat_id": chat_id})
+            self.send(chat_id, f"Отправил клиенту {client_chat_id} от имени LeadOps Studio.")
+        else:
+            self.send(chat_id, f"Не смог отправить клиенту {client_chat_id}: {result.get('description', 'unknown error')}")
+        return True
 
     def request_demo(self, chat_id: int) -> None:
         self.send(
@@ -445,6 +505,8 @@ class TelegramBot:
 
     def human_request(self, chat_id: int) -> None:
         self.store_event("bot_human_request", chat_id)
+        self.state.setdefault("active_handoffs", {})[str(chat_id)] = True
+        self.save_state()
         self.send(
             chat_id,
             "Приняли. Передадим запрос человеку и вернёмся с коротким следующим шагом: demo, оценка пилота или разбор воронки.",
@@ -458,6 +520,8 @@ class TelegramBot:
     def handle_text(self, message: dict[str, Any]) -> None:
         chat_id = message["chat"]["id"]
         text = (message.get("text") or "").strip()
+        if self.relay_manager_message(message, text):
+            return
         if text.startswith("/start "):
             source = text.split(maxsplit=1)[1][:64]
             self.store_event("bot_deeplink_start", chat_id, {"source": source})
@@ -473,6 +537,10 @@ class TelegramBot:
             self.start_flow(chat_id, "audit_command")
         elif text == "/pilot":
             self.pilot_info(chat_id)
+        elif self.state.get("active_handoffs", {}).get(str(chat_id)):
+            self.store_event("bot_client_message_forwarded", chat_id)
+            self.notify_manager_client_message(chat_id, text)
+            self.send(chat_id, "Передал человеку. Он ответит здесь от имени LeadOps Studio.")
         else:
             self.send(
                 chat_id,
