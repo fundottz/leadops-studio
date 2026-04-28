@@ -9,5 +9,6 @@ __pycache__/
 
 data/bot-state.json
 data/leads.jsonl
+data/analytics-events.jsonl
 data/bot.log
 data/bot.pid

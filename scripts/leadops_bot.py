@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = ROOT / ".env"
 STATE_PATH = ROOT / "data" / "bot-state.json"
 LEADS_PATH = ROOT / "data" / "leads.jsonl"
+ANALYTICS_PATH = ROOT / "data" / "analytics-events.jsonl"
 
 QUESTIONS = [
     {
@@ -110,6 +111,21 @@ class TelegramBot:
         tmp.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding="utf-8")
         tmp.replace(STATE_PATH)
 
+    def store_event(self, event: str, chat_id: int | str, payload: dict[str, Any] | None = None) -> None:
+        """Append privacy-light funnel analytics for MVP diagnostics.
+
+        This is intentionally local-only: no external analytics calls, no token/secrets.
+        """
+        ANALYTICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "ts": int(time.time()),
+            "event": event,
+            "chat_id": chat_id,
+            "payload": payload or {},
+        }
+        with ANALYTICS_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
     def api(self, method: str, payload: dict[str, Any] | None = None, timeout: int = 30) -> dict[str, Any]:
         body = json.dumps(payload or {}).encode("utf-8")
         req = Request(
@@ -155,6 +171,7 @@ class TelegramBot:
         return self.api("getMe")
 
     def welcome(self, chat_id: int) -> None:
+        self.store_event("bot_start", chat_id)
         self.send(
             chat_id,
             "Привет! Это LeadOps Studio.\n\n"
@@ -178,6 +195,7 @@ class TelegramBot:
         )
 
     def start_flow(self, chat_id: int, source: str) -> None:
+        self.store_event("bot_flow_start", chat_id, {"source": source})
         self.state.setdefault("sessions", {})[str(chat_id)] = {
             "source": source,
             "step": 0,
@@ -305,6 +323,9 @@ class TelegramBot:
             ],
         )
         self.store_lead(chat_id, answers, lead_status, points)
+        self.store_event("bot_lead_finished", chat_id, {"status": lead_status, "score": points})
+        if lead_status in {"горячий", "тёплый"}:
+            self.store_event("bot_qualified_lead", chat_id, {"status": lead_status, "score": points})
         self.notify_manager(chat_id, answers, lead_status, points)
         self.state.setdefault("last_leads", {})[str(chat_id)] = {
             "answers": answers,
@@ -360,6 +381,7 @@ class TelegramBot:
         )
 
     def human_request(self, chat_id: int) -> None:
+        self.store_event("bot_human_request", chat_id)
         self.send(
             chat_id,
             "Приняли. Передадим запрос человеку и вернёмся с коротким следующим шагом: demo, оценка пилота или разбор воронки.",
@@ -373,7 +395,11 @@ class TelegramBot:
     def handle_text(self, message: dict[str, Any]) -> None:
         chat_id = message["chat"]["id"]
         text = (message.get("text") or "").strip()
-        if text in {"/start", "start"}:
+        if text.startswith("/start "):
+            source = text.split(maxsplit=1)[1][:64]
+            self.store_event("bot_deeplink_start", chat_id, {"source": source})
+            self.welcome(chat_id)
+        elif text in {"/start", "start"}:
             self.welcome(chat_id)
         elif text == "/demo":
             self.start_flow(chat_id, "demo_command")
