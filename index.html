@@ -16,6 +16,23 @@
     .small{font-size:13px;color:var(--muted)}.hidden{display:none}.footer{margin-top:40px;color:var(--muted);font-size:14px}.warn{color:var(--danger)}
     @media(max-width:850px){.hero,.demo{grid-template-columns:1fr}h1{font-size:36px}.grid{grid-template-columns:1fr}}
   </style>
+  <script>
+    // Яндекс.Метрика: заменить 0 на реальный ID счётчика.
+    // Пока ID = 0, внешние запросы не отправляются, но цели уже подготовлены.
+    window.LEADOPS_YM_COUNTER_ID = 0;
+    (function(m,e,t,r,i,k,a){
+      if (!i) return;
+      m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+      m[i].l=1*new Date();
+      k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+      m[i](window.LEADOPS_YM_COUNTER_ID, 'init', {
+        clickmap:true,
+        trackLinks:true,
+        accurateTrackBounce:true,
+        webvisor:true
+      });
+    })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', window.LEADOPS_YM_COUNTER_ID ? 'ym' : null);
+  </script>
 </head>
 <body>
   <main class="wrap">
@@ -25,8 +42,9 @@
         <h1>Мини-контакт-центр для заявок в Telegram/WhatsApp</h1>
         <p class="lead">Пока вы на объекте, замере или в дороге, система отвечает клиенту за 1–2 минуты, уточняет детали заказа и присылает вам готовую карточку заявки.</p>
         <div class="cta">
-          <button class="btn primary" onclick="document.querySelector('#demoForm').scrollIntoView({behavior:'smooth'})">Показать demo</button>
-          <button class="btn secondary" onclick="alert('Следующий шаг: 10-минутный разбор, где теряются заявки и что можно автоматизировать.')">Разобрать заявки</button>
+          <a class="btn primary" href="https://t.me/LeadOpsStudioBot?start=landing_demo" onclick="trackLeadOpsEvent('landing_cta_bot_click', {cta:'hero_primary'})">Получить demo в Telegram</a>
+          <button class="btn secondary" onclick="trackLeadOpsEvent('landing_demo_scroll', {cta:'hero_secondary'}); document.querySelector('#demoForm').scrollIntoView({behavior:'smooth'})">Показать demo на странице</button>
+          <button class="btn secondary" onclick="trackLeadOpsEvent('landing_audit_click', {cta:'hero_audit'}); alert('Следующий шаг: 10-минутный разбор, где теряются заявки и что можно автоматизировать.')">Разобрать заявки</button>
         </div>
       </div>
       <form id="demoForm" class="card">
@@ -72,6 +90,23 @@
   </main>
 
   <script>
+    window.leadOpsEvents = window.leadOpsEvents || [];
+    function trackLeadOpsEvent(name, params = {}) {
+      const event = {name, params, ts: new Date().toISOString()};
+      window.leadOpsEvents.push(event);
+      if (typeof ym === 'function' && window.LEADOPS_YM_COUNTER_ID) {
+        ym(window.LEADOPS_YM_COUNTER_ID, 'reachGoal', name, params);
+      }
+      if (typeof dataLayer !== 'undefined' && Array.isArray(dataLayer)) {
+        dataLayer.push({event: name, ...params});
+      }
+      try {
+        const stored = JSON.parse(localStorage.getItem('leadops_events') || '[]');
+        stored.push(event);
+        localStorage.setItem('leadops_events', JSON.stringify(stored.slice(-50)));
+      } catch (_err) {}
+    }
+
     const scenarios = {
       furniture: {
         questions: ['Что нужно сделать: шкаф, кухня, мебель в ванную?', 'Есть размеры или фото?', 'Когда нужен замер/монтаж?', 'Есть примерный бюджет?', 'Как удобнее связаться?'],
@@ -96,6 +131,7 @@
       const name = document.querySelector('#name').value || 'Клиент';
       const contact = document.querySelector('#contact').value || 'контакт не указан';
       const need = document.querySelector('#need').value || 'запрос не указан';
+      trackLeadOpsEvent('landing_demo_submit', {segment: seg});
       document.querySelector('#clientChat').innerHTML = `
         <div class="bubble client">Здравствуйте, ${name}! Получили вашу заявку.</div>
         <div class="bubble client">Чтобы быстрее сориентировать по срокам и стоимости, уточните несколько деталей:</div>
