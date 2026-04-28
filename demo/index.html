@@ -44,7 +44,7 @@
         <div class="cta">
           <a class="btn primary" href="https://t.me/LeadOpsStudioBot?start=landing_demo" onclick="trackLeadOpsEvent('landing_cta_bot_click', {cta:'hero_primary'})">Получить demo в Telegram</a>
           <button class="btn secondary" onclick="trackLeadOpsEvent('landing_demo_scroll', {cta:'hero_secondary'}); document.querySelector('#demoForm').scrollIntoView({behavior:'smooth'})">Показать demo на странице</button>
-          <button class="btn secondary" onclick="trackLeadOpsEvent('landing_audit_click', {cta:'hero_audit'}); alert('Следующий шаг: 10-минутный разбор, где теряются заявки и что можно автоматизировать.')">Разобрать заявки</button>
+          <a class="btn secondary" href="https://t.me/LeadOpsStudioBot?start=landing_audit" onclick="trackLeadOpsEvent('landing_audit_click', {cta:'hero_audit'})">Разобрать заявки</a>
         </div>
       </div>
       <form id="demoForm" class="card">

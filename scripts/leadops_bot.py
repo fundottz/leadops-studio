@@ -398,7 +398,7 @@ class TelegramBot:
         if text.startswith("/start "):
             source = text.split(maxsplit=1)[1][:64]
             self.store_event("bot_deeplink_start", chat_id, {"source": source})
-            if source == "landing_demo":
+            if source in {"landing_demo", "landing_audit"}:
                 self.start_flow(chat_id, source)
             else:
                 self.welcome(chat_id)
