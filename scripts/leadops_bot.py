@@ -28,11 +28,11 @@ QUESTIONS = [
         "key": "niche",
         "text": "1/6. Какая у вас ниша?",
         "options": [
-            "клиника / стоматология / косметология",
             "ремонт / кухни / окна",
+            "B2B-услуги",
             "юридические услуги",
             "недвижимость",
-            "B2B-услуги",
+            "клиника / стоматология / косметология",
             "другое",
         ],
     },
@@ -398,7 +398,10 @@ class TelegramBot:
         if text.startswith("/start "):
             source = text.split(maxsplit=1)[1][:64]
             self.store_event("bot_deeplink_start", chat_id, {"source": source})
-            self.welcome(chat_id)
+            if source == "landing_demo":
+                self.start_flow(chat_id, source)
+            else:
+                self.welcome(chat_id)
         elif text in {"/start", "start"}:
             self.welcome(chat_id)
         elif text == "/demo":
