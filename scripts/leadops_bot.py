@@ -540,7 +540,6 @@ class TelegramBot:
         elif self.state.get("active_handoffs", {}).get(str(chat_id)):
             self.store_event("bot_client_message_forwarded", chat_id)
             self.notify_manager_client_message(chat_id, text)
-            self.send(chat_id, "Передал человеку. Он ответит здесь от имени LeadOps Studio.")
         else:
             self.send(
                 chat_id,
