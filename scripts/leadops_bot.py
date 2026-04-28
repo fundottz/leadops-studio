@@ -203,6 +203,13 @@ class TelegramBot:
             "started_at": int(time.time()),
         }
         self.save_state()
+        if source == "landing_audit":
+            self.send(
+                chat_id,
+                "Сейчас быстро оценим риск потери заявок.\n\n"
+                "Ответьте на 6 вопросов — в конце дам мини-диагностику: где, вероятнее всего, теряются лиды "
+                "и какие 3 правки стоит сделать первыми.",
+            )
         self.ask_question(chat_id)
 
     def ask_question(self, chat_id: int) -> None:
@@ -308,19 +315,67 @@ class TelegramBot:
             "Можно показать такой сценарий на вашем примере и оценить пилот на 2 недели."
         )
 
+    def build_audit_report(self, answers: dict[str, str], status: str, points: int) -> str:
+        scenario = self.niche_scenario(answers)
+        response_time = answers.get("response_time", "не указано")
+        volume = answers.get("volume", "не указано")
+        channel = answers.get("channels", "не указано")
+        pain = answers.get("pain", "не указано")
+
+        if points >= 6:
+            risk = "высокий"
+            diagnosis = "часть входящих почти наверняка остывает до живого ответа."
+        elif points >= 3:
+            risk = "средний"
+            diagnosis = "потери возможны в пиковые часы, вечером и когда владелец/менеджер занят."
+        else:
+            risk = "низкий/неочевидный"
+            diagnosis = "сначала стоит проверить факты: скорость ответа, долю непрозвонов и источники заявок."
+
+        return (
+            "Мини-аудит обработки заявок\n\n"
+            f"Риск потери лидов: {risk} ({points}/7).\n"
+            f"Диагноз: {diagnosis}\n\n"
+            "Что видно по вашим ответам:\n"
+            f"• канал заявок: {channel};\n"
+            f"• объём: {volume};\n"
+            f"• текущий первый ответ: {response_time};\n"
+            f"• главная боль: {pain}.\n\n"
+            "Где, скорее всего, течёт воронка:\n"
+            f"1. Первый ответ: {scenario['problem']}\n"
+            "2. Нет быстрых уточняющих вопросов до менеджера — клиент остаётся без ощущения движения.\n"
+            "3. Менеджер получает сырой запрос, а не карточку с приоритетом и следующим шагом.\n\n"
+            "Что сделать первым:\n"
+            f"1. Автоответ за 1–2 минуты: “{scenario['auto_reply']}”\n"
+            f"2. Задать 3–5 вопросов: {scenario['questions']}.\n"
+            f"3. Отправлять владельцу/менеджеру карточку: {scenario['manager_card']}.\n\n"
+            f"Итог: лид выглядит как {status}. Если пришлёте сайт/форму/квиз, можно сделать разбор уже по вашей реальной точке входа."
+        )
+
     def finish_flow(self, chat_id: int) -> None:
         session = self.state.get("sessions", {}).get(str(chat_id), {})
         answers: dict[str, str] = session.get("answers", {})
+        source = str(session.get("source", ""))
         lead_status, points = self.score(answers)
-        preview = self.build_demo_preview(answers, lead_status)
-        self.send(
-            chat_id,
-            preview,
+        is_audit = source in {"landing_audit", "start_audit", "audit_command"}
+        preview = self.build_audit_report(answers, lead_status, points) if is_audit else self.build_demo_preview(answers, lead_status)
+        rows = (
             [
+                [("Получить разбор по моему сайту", "request_audit")],
+                [("Узнать стоимость пилота", "pilot_info")],
+                [("Связаться с человеком", "human_request")],
+            ]
+            if is_audit
+            else [
                 [("Получить demo под мой сайт", "request_demo")],
                 [("Узнать стоимость пилота", "pilot_info")],
                 [("Связаться с человеком", "human_request")],
-            ],
+            ]
+        )
+        self.send(
+            chat_id,
+            preview,
+            rows,
         )
         self.store_lead(chat_id, answers, lead_status, points)
         self.store_event("bot_lead_finished", chat_id, {"status": lead_status, "score": points})
@@ -380,6 +435,14 @@ class TelegramBot:
             "Если ссылки нет — можем показать demo на типовом сценарии для вашей ниши.",
         )
 
+    def request_audit(self, chat_id: int) -> None:
+        self.send(
+            chat_id,
+            "Ок. Чтобы сделать разбор не абстрактно, пришлите ссылку на сайт, форму, квиз или страницу, куда сейчас приходят заявки.\n\n"
+            "Телефон не нужен — достаточно ссылки и пары слов, откуда обычно приходят клиенты. "
+            "В ответ можно дать короткий список: что поменять в первом ответе, какие вопросы задать клиенту и какую карточку отправлять менеджеру.",
+        )
+
     def human_request(self, chat_id: int) -> None:
         self.store_event("bot_human_request", chat_id)
         self.send(
@@ -427,6 +490,8 @@ class TelegramBot:
             self.pilot_info(chat_id)
         elif data == "request_demo":
             self.request_demo(chat_id)
+        elif data == "request_audit":
+            self.request_audit(chat_id)
         elif data == "human_request":
             self.human_request(chat_id)
         elif data.startswith("answer:"):
