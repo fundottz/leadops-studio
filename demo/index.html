@@ -11,7 +11,7 @@
     .wrap{max-width:1120px;margin:0 auto;padding:48px 20px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}.badge{display:inline-block;color:#07111f;background:var(--accent2);padding:6px 10px;border-radius:99px;font-weight:700;font-size:13px}
     h1{font-size:48px;line-height:1.05;margin:18px 0 16px}p.lead{font-size:20px;color:var(--muted);margin:0 0 24px}.cta{display:flex;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:14px 18px;font-weight:800;cursor:pointer}.primary{background:var(--accent);color:#06111d}.secondary{background:#24304e;color:var(--text)}
     .card{background:rgba(18,26,51,.9);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-    label{display:block;margin:12px 0 6px;color:var(--muted);font-size:14px}input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid #33415f;background:#0b1226;color:var(--text)}textarea{min-height:86px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}.step{background:#0f1730;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px}.step b{color:var(--accent)}
+    label{display:block;margin:12px 0 6px;color:var(--muted);font-size:14px}input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid #33415f;background:#0b1226;color:var(--text)}input[type="checkbox"]{width:auto;margin-right:8px}textarea{min-height:86px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}.step{background:#0f1730;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px}.step b{color:var(--accent)}
     .demo{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.bubble{background:#0f1730;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.08)}.bubble.client{border-color:rgba(103,232,249,.35)}.bubble.manager{border-color:rgba(167,243,208,.35)}
     .small{font-size:13px;color:var(--muted)}.hidden{display:none}.footer{margin-top:40px;color:var(--muted);font-size:14px}.warn{color:var(--danger)}
     @media(max-width:850px){.hero,.demo{grid-template-columns:1fr}h1{font-size:36px}.grid{grid-template-columns:1fr}}
@@ -61,8 +61,9 @@
         <input id="contact" placeholder="+7... / @username" value="@client_demo" />
         <label>Что нужно?</label>
         <textarea id="need">Хочу рассчитать заказ и понять сроки</textarea>
+        <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input id="pdnConsent" type="checkbox" required /> <span>Согласен на обработку данных демо-формы по Политике LeadOps. В этом демо данные никуда не отправляются.</span></label>
         <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Оставить заявку</button>
-        <p class="small">Это демо: данные формы никуда не отправляются. Для реального пилота работаем по договору/оферте, с чеком НПД и минимальным контуром 152-ФЗ.</p>
+        <p class="small">Для реального пилота работаем по договору/оферте, с чеком НПД и минимальным контуром 152-ФЗ.</p>
       </form>
     </section>
 
@@ -131,7 +132,8 @@
       const name = document.querySelector('#name').value || 'Клиент';
       const contact = document.querySelector('#contact').value || 'контакт не указан';
       const need = document.querySelector('#need').value || 'запрос не указан';
-      trackLeadOpsEvent('landing_demo_submit', {segment: seg});
+      if (!document.querySelector('#pdnConsent').checked) return;
+      trackLeadOpsEvent('landing_demo_submit', {segment: seg, consent: 'pdn_demo_v1'});
       document.querySelector('#clientChat').innerHTML = `
         <div class="bubble client">Здравствуйте, ${name}! Получили вашу заявку.</div>
         <div class="bubble client">Чтобы быстрее сориентировать по срокам и стоимости, уточните несколько деталей:</div>

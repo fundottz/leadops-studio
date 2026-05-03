@@ -23,6 +23,16 @@ STATE_PATH = ROOT / "data" / "bot-state.json"
 LEADS_PATH = ROOT / "data" / "leads.jsonl"
 ANALYTICS_PATH = ROOT / "data" / "analytics-events.jsonl"
 
+CONSENT_VERSION = "leadops-pdn-consent-v1-2026-05-03"
+CONSENT_TEXT = (
+    "Чтобы собрать demo-сценарий и передать заявку человеку, бот обработает "
+    "ваши ответы, Telegram-идентификатор и контактные данные, если вы их оставите.\n\n"
+    "Перед продолжением нажмите «Согласен», если вы согласны на обработку персональных данных "
+    "по Политике LeadOps. Без согласия бот не собирает заявку.\n\n"
+    "Не отправляйте паспортные данные, данные карт, медицинские сведения, данные детей "
+    "и другие чувствительные данные."
+)
+
 QUESTIONS = [
     {
         "key": "niche",
@@ -198,7 +208,44 @@ class TelegramBot:
             [[("Оценить мой кейс", "start_demo")], [("Показать demo", "start_demo")]],
         )
 
+    def has_consent(self, chat_id: int) -> bool:
+        consent = self.state.get("consents", {}).get(str(chat_id), {})
+        return consent.get("version") == CONSENT_VERSION and bool(consent.get("accepted_at"))
+
+    def request_consent(self, chat_id: int, source: str) -> None:
+        self.state.setdefault("pending_consent", {})[str(chat_id)] = {"source": source, "requested_at": int(time.time())}
+        self.save_state()
+        self.send(
+            chat_id,
+            CONSENT_TEXT,
+            [[("Согласен", f"accept_consent:{source}")], [("Не согласен", "decline_consent")]],
+        )
+
+    def accept_consent(self, chat_id: int, source: str) -> None:
+        self.state.setdefault("consents", {})[str(chat_id)] = {
+            "version": CONSENT_VERSION,
+            "accepted_at": int(time.time()),
+            "action": "button_accept",
+            "source": source,
+        }
+        self.state.get("pending_consent", {}).pop(str(chat_id), None)
+        self.save_state()
+        self.store_event("bot_pdn_consent_accepted", chat_id, {"version": CONSENT_VERSION, "source": source})
+        self.begin_flow(chat_id, source)
+
+    def decline_consent(self, chat_id: int) -> None:
+        self.state.get("pending_consent", {}).pop(str(chat_id), None)
+        self.save_state()
+        self.store_event("bot_pdn_consent_declined", chat_id, {"version": CONSENT_VERSION})
+        self.send(chat_id, "Ок, без согласия заявку не собираю. Можно просто посмотреть информацию о пилоте без передачи деталей.", [[("Узнать про пилот", "pilot_info")]])
+
     def start_flow(self, chat_id: int, source: str) -> None:
+        if not self.has_consent(chat_id):
+            self.request_consent(chat_id, source)
+            return
+        self.begin_flow(chat_id, source)
+
+    def begin_flow(self, chat_id: int, source: str) -> None:
         self.store_event("bot_flow_start", chat_id, {"source": source})
         self.state.setdefault("sessions", {})[str(chat_id)] = {
             "source": source,
@@ -553,6 +600,11 @@ class TelegramBot:
         data = query.get("data") or ""
         if data in {"start_demo", "start_audit"}:
             self.start_flow(chat_id, data)
+        elif data.startswith("accept_consent:"):
+            source = data.split(":", 1)[1][:64]
+            self.accept_consent(chat_id, source)
+        elif data == "decline_consent":
+            self.decline_consent(chat_id)
         elif data == "pilot_info":
             self.pilot_info(chat_id)
         elif data == "request_demo":
