@@ -61,9 +61,8 @@
         <input id="contact" placeholder="+7... / @username" value="@client_demo" />
         <label>Что нужно?</label>
         <textarea id="need">Хочу рассчитать заказ и понять сроки</textarea>
-        <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input id="pdnConsent" type="checkbox" required /> <span>Согласен на обработку данных демо-формы по Политике LeadOps. В этом демо данные никуда не отправляются.</span></label>
+        <p class="small">Нажимая кнопку, вы разрешаете использовать данные формы для demo/разбора. Не отправляйте паспортные, медицинские и другие чувствительные данные. В этом демо данные никуда не отправляются.</p>
         <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Оставить заявку</button>
-        <p class="small">Для реального пилота работаем по договору/оферте, с чеком НПД и минимальным контуром 152-ФЗ.</p>
       </form>
     </section>
 
@@ -132,8 +131,7 @@
       const name = document.querySelector('#name').value || 'Клиент';
       const contact = document.querySelector('#contact').value || 'контакт не указан';
       const need = document.querySelector('#need').value || 'запрос не указан';
-      if (!document.querySelector('#pdnConsent').checked) return;
-      trackLeadOpsEvent('landing_demo_submit', {segment: seg, consent: 'pdn_demo_v1'});
+      trackLeadOpsEvent('landing_demo_submit', {segment: seg, notice: 'pdn_light_v1'});
       document.querySelector('#clientChat').innerHTML = `
         <div class="bubble client">Здравствуйте, ${name}! Получили вашу заявку.</div>
         <div class="bubble client">Чтобы быстрее сориентировать по срокам и стоимости, уточните несколько деталей:</div>
