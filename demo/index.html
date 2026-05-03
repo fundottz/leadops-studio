@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини-контакт-центр для заявок в Telegram/WhatsApp</title>
-  <meta name="description" content="Демо: клиент написал в Telegram/WhatsApp/Авито → автоответ → уточнение деталей → карточка заявки владельцу." />
+  <title>Пилот автоответа на заявки в Telegram и форме сайта</title>
+  <meta name="description" content="Пилот услуги: заявка с формы/Telegram → автоответ → уточнение деталей → карточка заявки владельцу. Проверка спроса за 2 недели." />
   <style>
     :root { --bg:#0b1020; --card:#121a33; --text:#eef3ff; --muted:#a8b3cf; --accent:#67e8f9; --accent2:#a7f3d0; --danger:#fecaca; }
     *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#080c18,#111a35);color:var(--text);line-height:1.45}
@@ -39,12 +39,12 @@
     <section class="hero">
       <div>
         <span class="badge">Для малого сервисного бизнеса с дорогими заявками</span>
-        <h1>Мини-контакт-центр для заявок в Telegram/WhatsApp</h1>
-        <p class="lead">Пока вы на объекте, замере или в дороге, система отвечает клиенту за 1–2 минуты, уточняет детали заказа и присылает вам готовую карточку заявки.</p>
+        <h1>Пилот автоответа на заявки в Telegram и форме сайта</h1>
+        <p class="lead">Пока вы на объекте, замере или в дороге, мы настраиваем сценарий: заявка получает быстрый ответ, бот уточняет детали и присылает вам готовую карточку. Это пилот услуги на 2 недели, не SaaS-подписка.</p>
         <div class="cta">
           <a class="btn primary" href="https://t.me/LeadOpsStudioBot?start=landing_demo" onclick="trackLeadOpsEvent('landing_cta_bot_click', {cta:'hero_primary'})">Получить demo в Telegram</a>
           <button class="btn secondary" onclick="trackLeadOpsEvent('landing_demo_scroll', {cta:'hero_secondary'}); document.querySelector('#demoForm').scrollIntoView({behavior:'smooth'})">Показать demo на странице</button>
-          <a class="btn secondary" href="https://t.me/LeadOpsStudioBot?start=landing_audit" onclick="trackLeadOpsEvent('landing_audit_click', {cta:'hero_audit'})">Разобрать заявки</a>
+          <a class="btn secondary" href="https://t.me/LeadOpsStudioBot?start=landing_audit" onclick="trackLeadOpsEvent('landing_audit_click', {cta:'hero_audit'})">Разобрать мои заявки</a>
         </div>
       </div>
       <form id="demoForm" class="card">
@@ -62,12 +62,12 @@
         <label>Что нужно?</label>
         <textarea id="need">Хочу рассчитать заказ и понять сроки</textarea>
         <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Оставить заявку</button>
-        <p class="small">Это демо: данные никуда не отправляются.</p>
+        <p class="small">Это демо: данные формы никуда не отправляются. Для реального пилота работаем по договору/оферте, с чеком НПД и минимальным контуром 152-ФЗ.</p>
       </form>
     </section>
 
     <section class="grid">
-      <div class="step"><b>1. Заявка</b><br/>Telegram, WhatsApp, Авито, сайт, форма.</div>
+      <div class="step"><b>1. Заявка</b><br/>Telegram и форма сайта. WhatsApp/Авито — позже, отдельным этапом.</div>
       <div class="step"><b>2. Автоответ</b><br/>Клиент получает ответ, пока владелец занят.</div>
       <div class="step"><b>3. Карточка</b><br/>Бот собирает детали и присылает карточку заявки.</div>
     </section>
@@ -84,8 +84,8 @@
     </section>
 
     <section class="footer">
-      <p><b>Пилот:</b> 2 недели, 5–15 тыс ₽ для первых проверок. Цель — не терять заявки, пока владелец занят.</p>
-      <p class="warn">Важно: это не замена владельца в продаже. Система забирает первый рутинный слой: быстрый ответ, детали, приоритет.</p>
+      <p><b>Пилот:</b> 2 недели, 15–30 тыс ₽. Формат — услуга по настройке автоответа и первичной квалификации заявок, без обещания гарантированных продаж.</p>
+      <p class="warn">Важно: это не замена владельца в продаже. Система забирает первый рутинный слой: быстрый ответ, детали, приоритет. Оплата на старте — самозанятый/НПД + чек.</p>
     </section>
   </main>
 
