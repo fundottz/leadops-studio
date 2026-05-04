@@ -3,8 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LeadOps — пилот автоответа на заявки в Telegram</title>
-  <meta name="description" content="Красивый demo-лендинг LeadOps: пилот автоответа на заявки из формы сайта и Telegram за 2 недели. Быстрый ответ, квалификация, карточка заявки владельцу." />
+  <title>Заявки CRM — автоответ на заявки в Telegram и WhatsApp</title>
+  <meta name="description" content="Заявки CRM: автоответ на заявки за 1 минуту, квалификация клиента и уведомление владельцу в Telegram/CRM. Пилот для малого сервисного бизнеса за 2 недели." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="https://zayavki-crm.ru/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ru_RU" />
+  <meta property="og:title" content="Заявки CRM — автоответ на заявки за 1 минуту" />
+  <meta property="og:description" content="Автоответ, квалификация клиента и карточка заявки владельцу в Telegram/CRM." />
+  <meta property="og:url" content="https://zayavki-crm.ru/" />
   <meta name="theme-color" content="#09090b" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -340,6 +347,19 @@
       m[i](window.LEADOPS_YM_COUNTER_ID, 'init', { clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true });
     })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', window.LEADOPS_YM_COUNTER_ID ? 'ym' : null);
   </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Заявки CRM",
+    "url": "https://zayavki-crm.ru/",
+    "areaServed": "RU",
+    "availableLanguage": "ru",
+    "description": "Автоответ на заявки за 1 минуту, первичная квалификация клиента и уведомление владельцу в Telegram/CRM.",
+    "provider": {"@type": "Organization", "name": "Заявки CRM"}
+  }
+  </script>
 </head>
 <body>
   <div class="magic-grid"></div>
@@ -347,9 +367,9 @@
 
   <header class="nav">
     <div class="container nav-inner">
-      <a class="brand" href="#top" aria-label="LeadOps">
+      <a class="brand" href="#top" aria-label="Заявки CRM">
         <span class="logo">↗</span>
-        <span>LeadOps</span>
+        <span>Заявки CRM</span>
       </a>
       <nav class="nav-links" aria-label="Навигация">
         <a href="#flow">Как работает</a>
@@ -364,11 +384,11 @@
     <section class="hero">
       <div class="container hero-grid">
         <div>
-          <div class="badge reveal"><span class="ping"></span>Lean-пилот для малого сервисного бизнеса</div>
-          <h1 class="reveal delay-1"><span class="gradient-text">Автоответ</span><br/>на заявки</h1>
-          <p class="lead reveal delay-2">Заявка → автоответ<br/>→ карточка владельцу</p>
+          <div class="badge reveal"><span class="ping"></span>CRM для заявок без тяжёлого внедрения</div>
+          <h1 class="reveal delay-1"><span class="gradient-text">Не теряйте заявки,</span><br/>пока менеджер занят</h1>
+          <p class="lead reveal delay-2">Автоответ за 1 минуту, квалификация клиента и уведомление в Telegram/CRM.</p>
           <div class="cta-row reveal delay-3">
-            <a class="btn btn-primary btn-glow" href="https://t.me/LeadOpsStudioBot?start=landing_demo" onclick="trackLeadOpsEvent('landing_cta_bot_click', {cta:'hero_primary'})">Получить demo</a>
+            <a class="btn btn-primary btn-glow" href="https://t.me/LeadOpsStudioBot?start=landing_demo" onclick="trackLeadOpsEvent('landing_cta_bot_click', {cta:'hero_primary'})">Проверить на моих заявках</a>
             <button class="btn btn-secondary" onclick="trackLeadOpsEvent('landing_demo_scroll', {cta:'hero_secondary'}); document.querySelector('#demo').scrollIntoView({behavior:'smooth'})">Показать на странице</button>
           </div>
           <div class="hero-proof reveal delay-3">
@@ -382,7 +402,7 @@
         <div class="panel demo-card reveal delay-2" aria-label="Превью диалога">
           <div class="window-bar">
             <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-            <span>LeadOps Studio · Telegram flow</span>
+            <span>Заявки CRM · Telegram flow</span>
           </div>
           <div class="chat-surface">
             <div class="message bot">Здравствуйте! Получили заявку. Уточним пару деталей, чтобы быстрее сориентировать по срокам и стоимости.</div>
@@ -409,8 +429,8 @@
       <div class="container">
         <div class="section-head reveal">
           <div>
-            <div class="eyebrow">Speed-to-lead</div>
-            <h2>Первый слой продаж без контакт-центра</h2>
+            <div class="eyebrow">Ответ за 1 минуту</div>
+            <h2>Первый ответ без контакт-центра и тяжёлой CRM</h2>
           </div>
           <p class="section-copy">Бот не заменяет владельца. Он забирает рутину первого ответа, чтобы вы подключались уже к горячим и понятным заявкам.</p>
         </div>
@@ -504,8 +524,8 @@
 
   <footer class="footer">
     <div class="container footer-inner">
-      <div><b style="color:#fafafa">LeadOps</b><br/>Пилот услуги по автоответу и первичной квалификации заявок.</div>
-      <div>Telegram + форма сайта · СМЗ/НПД + чек · без обещаний гарантированных продаж</div>
+      <div><b style="color:#fafafa">Заявки CRM</b><br/>Автоответ и первичная квалификация заявок для малого сервисного бизнеса.</div>
+      <div>Telegram + форма сайта · пилот 2 недели · без обещаний гарантированных продаж</div>
     </div>
   </footer>
 
