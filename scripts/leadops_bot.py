@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal Telegram polling bot for LeadOps Studio.
+"""Minimal Telegram polling bot for Zayavki CRM / LeadOps Studio.
 
 No third-party dependencies. Secrets are loaded from .env and must not be committed.
 """
@@ -23,7 +23,7 @@ STATE_PATH = ROOT / "data" / "bot-state.json"
 LEADS_PATH = ROOT / "data" / "leads.jsonl"
 ANALYTICS_PATH = ROOT / "data" / "analytics-events.jsonl"
 
-CONSENT_VERSION = "leadops-pdn-consent-v1-2026-05-03"
+CONSENT_VERSION = "zayavki-crm-pdn-consent-v1-2026-05-04"
 CONSENT_TEXT = (
     "Коротко про данные: чтобы собрать demo/разбор, бот обработает ваши ответы, "
     "Telegram-идентификатор и контакт, если вы его оставите. Данные нужны только для ответа на заявку.\n\n"
@@ -186,9 +186,9 @@ class TelegramBot:
         self.store_event("bot_start", chat_id)
         self.send(
             chat_id,
-            "Привет! Это LeadOps Studio.\n\n"
+            "Привет! Это Заявки CRM.\n\n"
             "Покажем, как может выглядеть быстрый автоответ на заявку в вашей нише: "
-            "клиент получает ответ за 1–2 минуты, бот собирает вводные, менеджер получает готовую карточку лида.\n\n"
+            "клиент получает ответ за 1 минуту, бот собирает вводные, менеджер получает готовую карточку заявки.\n\n"
             "Что сделать?",
             [
                 [("Собрать demo-сценарий", "start_demo")],
@@ -200,8 +200,8 @@ class TelegramBot:
     def pilot_info(self, chat_id: int) -> None:
         self.send(
             chat_id,
-            "Пилот занимает 1–3 дня на запуск и 2 недели на проверку.\n\n"
-            "Обычно начинаем с Telegram + таблицы/CRM: автоответ, 3–6 вопросов, карточка лида менеджеру.\n\n"
+            "Пилот занимает 1–3 дня на запуск и 2 недели на проверку на реальных заявках.\n\n"
+            "Обычно начинаем с Telegram + таблицы/CRM: автоответ, 3–6 вопросов, карточка заявки владельцу или менеджеру.\n\n"
             "Стоимость первого пилота: 15–30 тыс ₽ — зависит от каналов заявок и интеграций.",
             [[("Оценить мой кейс", "start_demo")], [("Показать demo", "start_demo")]],
         )
