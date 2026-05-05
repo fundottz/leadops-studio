@@ -12,3 +12,5 @@ data/leads.jsonl
 data/analytics-events.jsonl
 data/bot.log
 data/bot.pid
+data/clients.local.json
+data/tenants/

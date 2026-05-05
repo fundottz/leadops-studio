@@ -11,6 +11,7 @@ import json
 import os
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,6 @@ ENV_PATH = ROOT / ".env"
 STATE_PATH = ROOT / "data" / "bot-state.json"
 LEADS_PATH = ROOT / "data" / "leads.jsonl"
 ANALYTICS_PATH = ROOT / "data" / "analytics-events.jsonl"
-
 CONSENT_VERSION = "zayavki-crm-pdn-consent-v1-2026-05-04"
 CONSENT_TEXT = (
     "Коротко про данные: чтобы собрать demo/разбор, бот обработает ваши ответы, "
@@ -78,11 +78,35 @@ QUESTIONS = [
     },
 ]
 
+DEFAULT_CLIENT_COPY = {
+    "company_name": "Заявки CRM",
+    "manager_card_title": "Новый лид Заявки CRM",
+    "welcome_title": "Привет! Это Заявки CRM.",
+    "welcome_text": (
+        "Покажем, как может выглядеть быстрый автоответ на заявку в вашей нише: "
+        "клиент получает ответ за 1 минуту, бот собирает вводные, менеджер получает готовую карточку заявки."
+    ),
+    "pilot_text": (
+        "Пилот занимает 1–3 дня на запуск и 2 недели на проверку на реальных заявках.\n\n"
+        "Обычно начинаем с Telegram + таблицы/CRM: автоответ, 3–6 вопросов, карточка заявки владельцу или менеджеру.\n\n"
+        "Стоимость первого пилота: 15–30 тыс ₽ — зависит от каналов заявок и интеграций."
+    ),
+    "handoff_text": "Приняли. Передадим запрос человеку и вернёмся с коротким следующим шагом.",
+    "client_finish_text": "Спасибо, заявку приняли. Передали специалисту — он вернётся с ответом по следующему шагу.",
+}
+
 COMMANDS = [
     {"command": "start", "description": "Начать разбор заявки"},
     {"command": "demo", "description": "Собрать demo-сценарий"},
     {"command": "audit", "description": "Разобрать обработку заявок"},
     {"command": "pilot", "description": "Узнать про пилот"},
+    {"command": "whoami", "description": "Показать chat_id для настройки"},
+    {"command": "reply", "description": "Ответить клиенту: /reply chat_id текст"},
+]
+
+CLIENT_INTAKE_COMMANDS = [
+    {"command": "start", "description": "Оставить заявку"},
+    {"command": "whoami", "description": "Показать chat_id для настройки"},
     {"command": "reply", "description": "Ответить клиенту: /reply chat_id текст"},
 ]
 
@@ -100,39 +124,58 @@ def load_env() -> dict[str, str]:
 
 
 class TelegramBot:
-    def __init__(self, token: str, manager_chat_id: str | None = None) -> None:
+    def __init__(
+        self,
+        token: str,
+        manager_chat_id: str | None = None,
+        tenant_id: str = "leadops",
+        copy: dict[str, str] | None = None,
+        questions: list[dict[str, Any]] | None = None,
+        flow_type: str = "leadops_demo",
+        state_path: Path | None = None,
+        leads_path: Path | None = None,
+        analytics_path: Path | None = None,
+    ) -> None:
+        self.tenant_id = tenant_id
         self.token = token
         self.manager_chat_id = manager_chat_id
         self.base_url = f"https://api.telegram.org/bot{token}"
+        self.copy = {**DEFAULT_CLIENT_COPY, **(copy or {})}
+        self.questions = questions or QUESTIONS
+        self.flow_type = flow_type
+        self.state_path = state_path or STATE_PATH
+        self.leads_path = leads_path or LEADS_PATH
+        self.analytics_path = analytics_path or ANALYTICS_PATH
         self.state = self.load_state()
 
     def load_state(self) -> dict[str, Any]:
-        if STATE_PATH.exists():
+        if self.state_path.exists():
             try:
-                return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+                return json.loads(self.state_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 return {"offset": 0, "sessions": {}}
         return {"offset": 0, "sessions": {}}
 
     def save_state(self) -> None:
-        STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        tmp = STATE_PATH.with_suffix(".tmp")
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.state_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding="utf-8")
-        tmp.replace(STATE_PATH)
+        tmp.replace(self.state_path)
 
     def store_event(self, event: str, chat_id: int | str, payload: dict[str, Any] | None = None) -> None:
         """Append privacy-light funnel analytics for MVP diagnostics.
 
         This is intentionally local-only: no external analytics calls, no token/secrets.
         """
-        ANALYTICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.analytics_path.parent.mkdir(parents=True, exist_ok=True)
         record = {
             "ts": int(time.time()),
+            "tenant_id": self.tenant_id,
             "event": event,
             "chat_id": chat_id,
             "payload": payload or {},
         }
-        with ANALYTICS_PATH.open("a", encoding="utf-8") as f:
+        with self.analytics_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     def api(self, method: str, payload: dict[str, Any] | None = None, timeout: int = 30) -> dict[str, Any]:
@@ -177,7 +220,8 @@ class TelegramBot:
         self.api("answerCallbackQuery", {"callback_query_id": callback_id}, timeout=10)
 
     def set_commands(self) -> dict[str, Any]:
-        return self.api("setMyCommands", {"commands": COMMANDS})
+        commands = CLIENT_INTAKE_COMMANDS if self.flow_type == "client_intake" else COMMANDS
+        return self.api("setMyCommands", {"commands": commands})
 
     def get_me(self) -> dict[str, Any]:
         return self.api("getMe")
@@ -186,9 +230,8 @@ class TelegramBot:
         self.store_event("bot_start", chat_id)
         self.send(
             chat_id,
-            "Привет! Это Заявки CRM.\n\n"
-            "Покажем, как может выглядеть быстрый автоответ на заявку в вашей нише: "
-            "клиент получает ответ за 1 минуту, бот собирает вводные, менеджер получает готовую карточку заявки.\n\n"
+            f"{self.copy['welcome_title']}\n\n"
+            f"{self.copy['welcome_text']}\n\n"
             "Что сделать?",
             [
                 [("Собрать demo-сценарий", "start_demo")],
@@ -200,9 +243,7 @@ class TelegramBot:
     def pilot_info(self, chat_id: int) -> None:
         self.send(
             chat_id,
-            "Пилот занимает 1–3 дня на запуск и 2 недели на проверку на реальных заявках.\n\n"
-            "Обычно начинаем с Telegram + таблицы/CRM: автоответ, 3–6 вопросов, карточка заявки владельцу или менеджеру.\n\n"
-            "Стоимость первого пилота: 15–30 тыс ₽ — зависит от каналов заявок и интеграций.",
+            self.copy["pilot_text"],
             [[("Оценить мой кейс", "start_demo")], [("Показать demo", "start_demo")]],
         )
 
@@ -267,10 +308,10 @@ class TelegramBot:
             self.welcome(chat_id)
             return
         step = int(session.get("step", 0))
-        if step >= len(QUESTIONS):
+        if step >= len(self.questions):
             self.finish_flow(chat_id)
             return
-        question = QUESTIONS[step]
+        question = self.questions[step]
         rows = [[(option, f"answer:{step}:{idx}")] for idx, option in enumerate(question["options"])]
         self.send(chat_id, question["text"], rows)
 
@@ -279,10 +320,10 @@ class TelegramBot:
         if not session:
             self.welcome(chat_id)
             return
-        if step != int(session.get("step", 0)) or step >= len(QUESTIONS):
+        if step != int(session.get("step", 0)) or step >= len(self.questions):
             self.ask_question(chat_id)
             return
-        question = QUESTIONS[step]
+        question = self.questions[step]
         try:
             answer = question["options"][option_idx]
         except IndexError:
@@ -406,6 +447,21 @@ class TelegramBot:
         answers: dict[str, str] = session.get("answers", {})
         source = str(session.get("source", ""))
         lead_status, points = self.score(answers)
+        if self.flow_type == "client_intake":
+            lead_status, points = "новая заявка", 0
+            self.send(chat_id, self.copy["client_finish_text"])
+            self.store_lead(chat_id, answers, lead_status, points)
+            self.store_event("bot_lead_finished", chat_id, {"status": lead_status, "score": points})
+            self.notify_manager(chat_id, answers, lead_status, points)
+            self.state.setdefault("last_leads", {})[str(chat_id)] = {
+                "answers": answers,
+                "status": lead_status,
+                "score": points,
+                "finished_at": int(time.time()),
+            }
+            self.state.get("sessions", {}).pop(str(chat_id), None)
+            self.save_state()
+            return
         is_audit = source in {"landing_audit", "start_audit", "audit_command"}
         preview = self.build_audit_report(answers, lead_status, points) if is_audit else self.build_demo_preview(answers, lead_status)
         rows = (
@@ -441,15 +497,16 @@ class TelegramBot:
         self.save_state()
 
     def store_lead(self, chat_id: int, answers: dict[str, str], status: str, points: int) -> None:
-        LEADS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.leads_path.parent.mkdir(parents=True, exist_ok=True)
         record = {
             "ts": int(time.time()),
+            "tenant_id": self.tenant_id,
             "chat_id": chat_id,
             "status": status,
             "score": points,
             "answers": answers,
         }
-        with LEADS_PATH.open("a", encoding="utf-8") as f:
+        with self.leads_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     def notify_manager(self, chat_id: int, answers: dict[str, str], status: str, points: int) -> None:
@@ -460,17 +517,27 @@ class TelegramBot:
             # Do not leak the internal lead card into the client conversation.
             print(f"manager_notify_skipped_same_chat chat_id={chat_id} status={status} score={points}", flush=True)
             return
+        known_fields = {
+            "niche": "Ниша",
+            "channels": "Каналы заявок",
+            "volume": "Объём заявок",
+            "response_time": "Скорость ответа",
+            "pain": "Боль",
+            "next_step": "Интерес",
+        }
+        answer_lines = [f"{label}: {answers.get(key, '-')}" for key, label in known_fields.items() if key in answers]
+        extra_lines = [f"{key}: {value}" for key, value in answers.items() if key not in known_fields]
+        if not answer_lines and extra_lines:
+            answer_lines = extra_lines
+            extra_lines = []
+        details = "\n".join(answer_lines + extra_lines) or "Ответов пока нет"
         text = (
-            "Новый лид LeadOps Studio\n\n"
+            f"{self.copy['manager_card_title']}\n\n"
             f"Статус: {status} ({points} баллов)\n"
-            f"Ниша: {answers.get('niche', '-')}\n"
-            f"Каналы заявок: {answers.get('channels', '-')}\n"
-            f"Объём заявок: {answers.get('volume', '-')}\n"
-            f"Скорость ответа: {answers.get('response_time', '-')}\n"
-            f"Боль: {answers.get('pain', '-')}\n"
-            f"Интерес: {answers.get('next_step', '-')}\n"
+            f"{details}\n"
             f"Telegram chat_id: {chat_id}\n\n"
-            "Рекомендация: если лид тёплый/горячий — подключиться и предложить demo/пилот."
+            "Ответить можно reply на эту карточку или командой:\n"
+            f"/reply {chat_id} ваш текст"
         )
         result = self.send(self.manager_chat_id, text)
         if result.get("ok"):
@@ -486,7 +553,7 @@ class TelegramBot:
             return
         result = self.send(
             self.manager_chat_id,
-            "Сообщение клиента LeadOps Studio\n\n"
+            f"Сообщение клиента {self.copy['company_name']}\n\n"
             f"Telegram chat_id: {chat_id}\n"
             f"Текст: {text}\n\n"
             f"Ответить можно reply на это сообщение или командой:\n/reply {chat_id} ваш текст",
@@ -527,7 +594,7 @@ class TelegramBot:
         result = self.send(client_chat_id, body.strip())
         if result.get("ok"):
             self.store_event("bot_manager_reply", client_chat_id, {"manager_chat_id": chat_id})
-            self.send(chat_id, f"Отправил клиенту {client_chat_id} от имени LeadOps Studio.")
+            self.send(chat_id, f"Отправил клиенту {client_chat_id} от имени {self.copy['company_name']}.")
         else:
             self.send(chat_id, f"Не смог отправить клиенту {client_chat_id}: {result.get('description', 'unknown error')}")
         return True
@@ -554,7 +621,7 @@ class TelegramBot:
         self.save_state()
         self.send(
             chat_id,
-            "Приняли. Передадим запрос человеку и вернёмся с коротким следующим шагом: demo, оценка пилота или разбор воронки.",
+            self.copy["handoff_text"],
         )
         lead = self.state.get("last_leads", {}).get(str(chat_id), {})
         answers = lead.get("answers", {}) if isinstance(lead, dict) else {}
@@ -582,6 +649,14 @@ class TelegramBot:
             self.start_flow(chat_id, "audit_command")
         elif text == "/pilot":
             self.pilot_info(chat_id)
+        elif text == "/whoami":
+            chat = message.get("chat", {})
+            title = chat.get("title") or chat.get("username") or chat.get("first_name") or "без названия"
+            self.send(
+                chat_id,
+                f"chat_id: {chat_id}\ntenant_id: {self.tenant_id}\nchat: {title}\n\n"
+                "Скопируйте chat_id в manager_chat_id клиента.",
+            )
         elif self.state.get("active_handoffs", {}).get(str(chat_id)):
             self.store_event("bot_client_message_forwarded", chat_id)
             self.notify_manager_client_message(chat_id, text)
@@ -636,19 +711,70 @@ class TelegramBot:
         self.save_state()
         return len(updates)
 
-    def run(self) -> None:
-        print("leadops_bot_started", flush=True)
+    def run(self, install_signal_handlers: bool = True) -> None:
+        print(f"leadops_bot_started tenant={self.tenant_id}", flush=True)
         stopping = False
 
         def stop(_signum: int, _frame: Any) -> None:
             nonlocal stopping
             stopping = True
 
-        signal.signal(signal.SIGTERM, stop)
-        signal.signal(signal.SIGINT, stop)
+        if install_signal_handlers:
+            signal.signal(signal.SIGTERM, stop)
+            signal.signal(signal.SIGINT, stop)
         while not stopping:
             self.poll_once(timeout=25)
-        print("leadops_bot_stopped", flush=True)
+        print(f"leadops_bot_stopped tenant={self.tenant_id}", flush=True)
+
+
+def tenant_paths(tenant_id: str) -> tuple[Path, Path, Path]:
+    base = ROOT / "data" / "tenants" / tenant_id
+    return base / "bot-state.json", base / "leads.jsonl", base / "analytics-events.jsonl"
+
+
+def bot_from_client_config(client: dict[str, Any]) -> TelegramBot:
+    tenant_id = str(client["tenant_id"])
+    state_path, leads_path, analytics_path = tenant_paths(tenant_id)
+    return TelegramBot(
+        token=str(client["bot_token"]),
+        manager_chat_id=str(client["manager_chat_id"]) if client.get("manager_chat_id") else None,
+        tenant_id=tenant_id,
+        copy=client.get("copy") or {},
+        questions=client.get("questions") or QUESTIONS,
+        flow_type=str(client.get("flow_type") or "leadops_demo"),
+        state_path=state_path,
+        leads_path=leads_path,
+        analytics_path=analytics_path,
+    )
+
+
+def load_clients(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise FileNotFoundError(f"clients config not found: {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    clients = data.get("clients") if isinstance(data, dict) else data
+    if not isinstance(clients, list) or not clients:
+        raise ValueError("clients config must contain non-empty clients list")
+    for client in clients:
+        if not client.get("tenant_id") or not client.get("bot_token"):
+            raise ValueError("each client needs tenant_id and bot_token")
+    return clients
+
+
+def run_many(bots: list[TelegramBot]) -> None:
+    stopping = False
+
+    def stop(_signum: int, _frame: Any) -> None:
+        nonlocal stopping
+        stopping = True
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    threads = [threading.Thread(target=bot.run, kwargs={"install_signal_handlers": False}, daemon=True) for bot in bots]
+    for thread in threads:
+        thread.start()
+    while not stopping:
+        time.sleep(1)
 
 
 def main() -> int:
@@ -656,7 +782,51 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="Validate token with getMe")
     parser.add_argument("--set-commands", action="store_true", help="Register Telegram bot commands")
     parser.add_argument("--once", action="store_true", help="Process updates once and exit")
+    parser.add_argument(
+        "--clients-config",
+        default=None,
+        help="Run multiple client bots from JSON config (default for multi-tenant: data/clients.local.json)",
+    )
+    parser.add_argument("--tenant", default=None, help="Limit --clients-config actions to one tenant_id")
     args = parser.parse_args()
+
+    if args.clients_config:
+        config_path = Path(args.clients_config)
+        clients = load_clients(config_path)
+        if args.tenant:
+            clients = [client for client in clients if str(client.get("tenant_id")) == args.tenant]
+            if not clients:
+                print(f"tenant not found: {args.tenant}", file=sys.stderr)
+                return 2
+        bots = [bot_from_client_config(client) for client in clients]
+        if args.check:
+            ok = True
+            for bot in bots:
+                result = bot.get_me()
+                info = result.get("result", {}) if result.get("ok") else {}
+                row = {
+                    "tenant_id": bot.tenant_id,
+                    "ok": bool(result.get("ok")),
+                    "username": info.get("username"),
+                    "first_name": info.get("first_name"),
+                    "description": result.get("description"),
+                }
+                print(json.dumps(row, ensure_ascii=False))
+                ok = ok and bool(result.get("ok"))
+            return 0 if ok else 1
+        if args.set_commands:
+            ok = True
+            for bot in bots:
+                result = bot.set_commands()
+                print(json.dumps({"tenant_id": bot.tenant_id, "ok": bool(result.get("ok")), "description": result.get("description")}, ensure_ascii=False))
+                ok = ok and bool(result.get("ok"))
+            return 0 if ok else 1
+        if args.once:
+            for bot in bots:
+                bot.poll_once(timeout=1)
+            return 0
+        run_many(bots)
+        return 0
 
     env = load_env()
     token = env.get("LEADOPS_BOT_TOKEN")

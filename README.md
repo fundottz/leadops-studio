@@ -13,6 +13,7 @@
 - публичный demo-лендинг: https://fundottz.github.io/leadops-studio/; целевой домен: https://zayavki-crm.ru/
 - Telegram-бот: `@LeadOpsStudioBot` (текущий handle; текст обновляется под бренд «Заявки CRM»)
 - MVP-flow: бот собирает вводные, сохраняет лид и отправляет карточку менеджеру
+- multi-client backend: один движок может запускать несколько клиентских Telegram-ботов с разными сценариями, брендом и manager chat
 
 Рабочая воронка:
 
@@ -40,6 +41,21 @@
 ```
 
 Открыть: http://127.0.0.1:8787
+
+## Multi-client bot backend
+
+Для первого платного клиента рекомендуем схему: отдельный Telegram-бот под бренд клиента, общий backend LeadOps.
+
+Быстрый старт:
+
+```bash
+cp data/clients.example.json data/clients.local.json
+./scripts/run-bot.sh --clients-config data/clients.local.json --tenant vasya_kitchens --check
+./scripts/run-bot.sh --clients-config data/clients.local.json --tenant vasya_kitchens --set-commands
+./scripts/run-bot.sh --clients-config data/clients.local.json
+```
+
+Инструкция подключения клиента за 5 минут: `docs/client-onboarding-5min.md`.
 
 ## Важные ограничения
 
