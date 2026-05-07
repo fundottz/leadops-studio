@@ -110,6 +110,16 @@ CLIENT_INTAKE_COMMANDS = [
     {"command": "reply", "description": "Ответить клиенту: /reply chat_id текст"},
 ]
 
+MANAGER_STATUSES = {
+    "taken": "Взял",
+    "contacted": "Связались",
+    "not_target": "Нецелевой",
+    "duplicate": "Дубль",
+    "needs_call": "Нужен звонок",
+}
+
+FINAL_MANAGER_STATUSES = {"contacted", "not_target", "duplicate"}
+
 
 def load_env() -> dict[str, str]:
     values = dict(os.environ)
@@ -146,6 +156,9 @@ class TelegramBot:
         self.state_path = state_path or STATE_PATH
         self.leads_path = leads_path or LEADS_PATH
         self.analytics_path = analytics_path or ANALYTICS_PATH
+        self.sla_minutes = int(os.environ.get("LEADOPS_SLA_MINUTES", "10"))
+        self.workday_start_hour = int(os.environ.get("LEADOPS_WORKDAY_START_HOUR", "9"))
+        self.workday_end_hour = int(os.environ.get("LEADOPS_WORKDAY_END_HOUR", "19"))
         self.state = self.load_state()
 
     def load_state(self) -> dict[str, Any]:
@@ -212,6 +225,14 @@ class TelegramBot:
         if rows:
             payload["reply_markup"] = self.keyboard(rows)
         return self.api("sendMessage", payload)
+
+    def manager_status_keyboard(self, client_chat_id: int | str) -> list[list[tuple[str, str]]]:
+        lead_id = str(client_chat_id)
+        return [
+            [("Взял", f"mgr_status:{lead_id}:taken"), ("Нужен звонок", f"mgr_status:{lead_id}:needs_call")],
+            [("Связались", f"mgr_status:{lead_id}:contacted")],
+            [("Нецелевой", f"mgr_status:{lead_id}:not_target"), ("Дубль", f"mgr_status:{lead_id}:duplicate")],
+        ]
 
     def is_manager_chat(self, chat_id: int | str) -> bool:
         return bool(self.manager_chat_id) and str(chat_id) == str(self.manager_chat_id)
@@ -539,14 +560,81 @@ class TelegramBot:
             "Ответить можно reply на эту карточку или командой:\n"
             f"/reply {chat_id} ваш текст"
         )
-        result = self.send(self.manager_chat_id, text)
+        result = self.send(self.manager_chat_id, text, self.manager_status_keyboard(chat_id))
         if result.get("ok"):
+            now = int(time.time())
             message_id = result.get("result", {}).get("message_id")
             if message_id:
                 self.state.setdefault("manager_threads", {})[str(message_id)] = str(chat_id)
-                self.save_state()
+            self.state.setdefault("manager_pending_leads", {})[str(chat_id)] = {
+                "created_at": now,
+                "notified_at": now,
+                "message_id": message_id,
+                "lead_status": status,
+                "score": points,
+                "manager_status": "new",
+                "last_sla_reminded_at": None,
+            }
+            self.save_state()
         if not result.get("ok"):
             print(f"manager_notify_failed: {result.get('description', 'unknown error')}", file=sys.stderr)
+
+    def set_manager_status(self, manager_chat_id: int | str, client_chat_id: str, status_code: str) -> None:
+        if not self.is_manager_chat(manager_chat_id):
+            return
+        if status_code not in MANAGER_STATUSES:
+            self.send(manager_chat_id, "Неизвестный статус заявки.")
+            return
+        now = int(time.time())
+        pending = self.state.setdefault("manager_pending_leads", {}).setdefault(client_chat_id, {})
+        pending["manager_status"] = status_code
+        pending["manager_status_label"] = MANAGER_STATUSES[status_code]
+        pending["manager_status_at"] = now
+        if status_code in FINAL_MANAGER_STATUSES:
+            pending["closed_at"] = now
+        self.save_state()
+        self.store_event("bot_manager_status_changed", client_chat_id, {
+            "manager_chat_id": manager_chat_id,
+            "status": status_code,
+            "status_label": MANAGER_STATUSES[status_code],
+        })
+        self.send(manager_chat_id, f"Статус заявки {client_chat_id}: {MANAGER_STATUSES[status_code]}.")
+
+    def is_work_time(self, now: int | None = None) -> bool:
+        hour = time.localtime(now or int(time.time())).tm_hour
+        if self.workday_start_hour <= self.workday_end_hour:
+            return self.workday_start_hour <= hour < self.workday_end_hour
+        return hour >= self.workday_start_hour or hour < self.workday_end_hour
+
+    def check_sla_reminders(self) -> None:
+        if not self.manager_chat_id or self.sla_minutes <= 0 or not self.is_work_time():
+            return
+        now = int(time.time())
+        stale_after = self.sla_minutes * 60
+        changed = False
+        for client_chat_id, lead in list(self.state.get("manager_pending_leads", {}).items()):
+            if not isinstance(lead, dict):
+                continue
+            manager_status = str(lead.get("manager_status") or "new")
+            if manager_status != "new" or lead.get("closed_at"):
+                continue
+            notified_at = int(lead.get("notified_at") or lead.get("created_at") or now)
+            last_reminded_at = lead.get("last_sla_reminded_at")
+            if now - notified_at < stale_after:
+                continue
+            if last_reminded_at and now - int(last_reminded_at) < stale_after:
+                continue
+            result = self.send(
+                self.manager_chat_id,
+                f"SLA: заявка {client_chat_id} не взята в работу {self.sla_minutes}+ минут. "
+                "Нажмите статус или ответьте клиенту.",
+                self.manager_status_keyboard(client_chat_id),
+            )
+            if result.get("ok"):
+                lead["last_sla_reminded_at"] = now
+                changed = True
+        if changed:
+            self.save_state()
 
     def notify_manager_client_message(self, chat_id: int, text: str) -> None:
         if not self.manager_chat_id or self.is_manager_chat(chat_id):
@@ -671,7 +759,14 @@ class TelegramBot:
         self.answer_callback(query["id"])
         chat_id = query["message"]["chat"]["id"]
         data = query.get("data") or ""
-        if data in {"start_demo", "start_audit"}:
+        if data.startswith("mgr_status:"):
+            try:
+                _, client_chat_id, status_code = data.split(":", 2)
+            except ValueError:
+                self.send(chat_id, "Не смог разобрать статус заявки.")
+                return
+            self.set_manager_status(chat_id, client_chat_id, status_code)
+        elif data in {"start_demo", "start_audit"}:
             self.start_flow(chat_id, data)
         elif data.startswith("accept_consent:"):
             source = data.split(":", 1)[1][:64]
@@ -708,6 +803,7 @@ class TelegramBot:
         for update in updates:
             self.state["offset"] = update["update_id"] + 1
             self.process_update(update)
+        self.check_sla_reminders()
         self.save_state()
         return len(updates)
 
