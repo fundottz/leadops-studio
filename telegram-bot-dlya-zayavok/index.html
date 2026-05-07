@@ -1,31 +1,70 @@
-<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Telegram-бот для заявок — Заявки CRM</title><meta name="description" content="Бот принимает заявку, отвечает клиенту, квалифицирует запрос и отправляет владельцу готовую карточку в Telegram."><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="https://zayavki-crm.ru/telegram-bot-dlya-zayavok/">
-<meta property="og:type" content="article"><meta property="og:locale" content="ru_RU"><meta property="og:title" content="Telegram-бот для заявок — Заявки CRM"><meta property="og:description" content="Бот принимает заявку, отвечает клиенту, квалифицирует запрос и отправляет владельцу готовую карточку в Telegram."><meta property="og:url" content="https://zayavki-crm.ru/telegram-bot-dlya-zayavok/">
-<style>body{margin:0;font-family:Inter,Arial,sans-serif;background:#09090b;color:#fafafa;line-height:1.55}main{max-width:880px;margin:0 auto;padding:48px 20px 72px}.brand{color:#a1a1aa;text-decoration:none;font-weight:800}.badge{display:inline-block;margin:34px 0 12px;padding:6px 10px;border:1px solid #2a2a30;border-radius:999px;color:#67e8f9}h1{font-size:clamp(36px,7vw,64px);line-height:1;margin:10px 0 18px;letter-spacing:-.05em}.lead{font-size:20px;color:#e4e4e7}.card{margin:18px 0;padding:20px;border:1px solid #27272a;border-radius:18px;background:#18181b}h2{margin:0 0 8px}.btn{display:inline-block;margin-top:22px;padding:13px 18px;border-radius:12px;background:#fafafa;color:#09090b;text-decoration:none;font-weight:900}.muted{color:#a1a1aa}.links a{color:#67e8f9;margin-right:14px}</style>  <script>window.LEADOPS_YM_COUNTER_ID = 109089340;</script>
-  <!-- Yandex.Metrika counter -->
-  <script type="text/javascript">
-   (function(m,e,t,r,i,k,a){
-   m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-   m[i].l=1*new Date();
-   for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-   })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109089340', 'ym');
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Telegram-бот для заявок: приём, карточка и статусы — Заявки CRM</title><meta name="description" content="Telegram-бот для заявок: автоответ, квалификация, карточка менеджеру, статусы и контроль зависших заявок без сложного внедрения CRM."><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="https://zayavki-crm.ru/telegram-bot-dlya-zayavok/"><meta property="og:type" content="article"><meta property="og:locale" content="ru_RU"><meta property="og:title" content="Telegram-бот для заявок: приём, карточка и статусы — Заявки CRM"><meta property="og:description" content="Telegram-бот для заявок: автоответ, квалификация, карточка менеджеру, статусы и контроль зависших заявок без сложного внедрения CRM."><meta property="og:url" content="https://zayavki-crm.ru/telegram-bot-dlya-zayavok/">
+<style>
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#09090b;color:#fafafa;line-height:1.62}main{max-width:980px;margin:0 auto;padding:44px 20px 72px}.brand{color:#fafafa;text-decoration:none;font-weight:900}.badge{display:inline-block;margin:30px 0 10px;padding:6px 10px;border:1px solid #2a2a30;border-radius:999px;color:#67e8f9}h1{font-size:clamp(34px,6vw,58px);line-height:1.04;margin:10px 0 18px;letter-spacing:-.045em}h2{font-size:28px;margin:38px 0 12px}h3{font-size:21px;margin:26px 0 8px}p,li{color:#e4e4e7}ul,ol{padding-left:24px}li{margin:7px 0}blockquote{border-left:3px solid #67e8f9;margin:22px 0;padding:12px 18px;background:#18181b;border-radius:12px;color:#fafafa}code{background:#18181b;padding:2px 5px;border-radius:5px}.nav{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px;padding-top:24px;border-top:1px solid #27272a}.nav a{color:#67e8f9;text-decoration:none;border:1px solid #27272a;border-radius:999px;padding:7px 10px}.cta{display:inline-block;margin-top:24px;padding:13px 18px;border-radius:12px;background:#fafafa;color:#09090b;text-decoration:none;font-weight:900}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;margin:18px 0}th,td{border:1px solid #27272a;padding:8px;text-align:left}th{background:#18181b}
+.visual{margin:26px 0;padding:22px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:linear-gradient(135deg,rgba(34,211,238,.10),rgba(167,139,250,.08) 45%,rgba(24,24,27,.92));box-shadow:0 18px 50px rgba(0,0,0,.28)}.visual h2{margin-top:0}.flow{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));gap:10px;margin-top:14px}.step{position:relative;padding:14px 12px;min-height:92px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(9,9,11,.72)}.step b{display:block;color:#fafafa;margin-bottom:6px}.step span{color:#a1a1aa;font-size:13px}.step:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:34px;color:#67e8f9;font-weight:900}.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(9,9,11,.62)}.panel h3{margin-top:0}.card-preview{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;white-space:pre-wrap;color:#e4e4e7}.funnel{display:grid;gap:10px}.bar{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;align-items:center}.track{height:18px;border-radius:999px;background:#27272a;overflow:hidden}.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#67e8f9,#a78bfa)}.note{color:#a1a1aa;font-size:14px;margin-top:10px}@media(max-width:860px){.flow{grid-template-columns:1fr}.step:not(:last-child)::after{content:'↓';right:18px;top:auto;bottom:-18px}.split{grid-template-columns:1fr}.bar{grid-template-columns:1fr}.track{height:14px}}
+</style>
+<script>window.LEADOPS_YM_COUNTER_ID=109089340;</script><script type="text/javascript">(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109089340','ym');ym(109089340,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});</script></head><body><noscript><div><img src="https://mc.yandex.ru/watch/109089340" style="position:absolute;left:-9999px" alt=""></div></noscript><main><a class="brand" href="/">↗ Заявки CRM</a><br><span class="badge">SEO / обработка заявок без тяжёлой CRM</span><h1>Telegram-бот для заявок: приём, карточка и статусы</h1><p>Telegram-бот помогает не терять входящие обращения: принимает заявку, задаёт короткие вопросы и отправляет менеджеру карточку с кнопками статусов.</p><p>Бот не заменяет CRM, если нужны сделки, телефония и отчёты. Но он быстро закрывает первый провал — заявку увидели, взяли в работу и не забыли.</p>
+<section class="visual">
+  <h2>Схема: что именно автоматизируем</h2>
+  <div class="flow">
+    <div class="step"><b>1. Источник</b><span>сайт, реклама, профиль, Авито или ссылка</span></div>
+    <div class="step"><b>2. Автоответ</b><span>клиент сразу понимает, что заявка принята</span></div>
+    <div class="step"><b>3. Вопросы</b><span>3–6 вводных вместо пустого контакта</span></div>
+    <div class="step"><b>4. Карточка</b><span>менеджер получает структурированную заявку</span></div>
+    <div class="step"><b>5. Статус</b><span>Взял, Связались, Нужен звонок, Нецелевой</span></div>
+    <div class="step"><b>6. Контроль</b><span>напоминание, если заявка зависла</span></div>
+  </div>
+  <p class="note">Это входной слой обработки заявок. Не заменяет CRM, но быстро закрывает провал первого ответа.</p>
+</section>
 
-   ym(109089340, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-  </script>
-  <!-- /Yandex.Metrika counter -->
-</head><body>
-  <noscript><div><img src="https://mc.yandex.ru/watch/109089340" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<main>
-<a class="brand" href="/">↗ Заявки CRM</a><br><span class="badge">Органика / справка</span>
-<h1>Telegram-бот для обработки заявок</h1><p class="lead">Бот принимает заявку, отвечает клиенту, квалифицирует запрос и отправляет владельцу готовую карточку в Telegram.</p>
-<div class="card"><h2>Коротко</h2><p>Заявки CRM помогает быстро отвечать на входящие заявки, задавать первичные вопросы и передавать владельцу понятную карточку клиента.</p></div>
-<section class="card"><h2>Зачем нужен бот</h2><p>Чтобы заявка не лежала без ответа, пока менеджер занят, на объекте или вне рабочего времени.</p></section>
-<section class="card"><h2>Как работает</h2><p>Клиент получает быстрый ответ, бот уточняет нишу, сроки, бюджет, контакт и передаёт данные владельцу.</p></section>
-<section class="card"><h2>Первый пилот</h2><p>19 900 ₽: отдельный Telegram-бот под бизнес, ссылка для сайта/профиля/объявлений, 3–6 вопросов, карточка заявки владельцу и 2 недели сопровождения. Запуск за 1 день возможен, если Telegram-сценарий согласован заранее.</p></section>
-<section class="card"><h2>Что не входит</h2><p>CRM-интеграции, WhatsApp Business API, Avito API, доработка формы сайта, платные внешние сервисы и реклама считаются отдельно. На старте проверяем простой слой: Telegram + карточка заявки.</p></section>
-<section class="card"><h2>Ключевые темы</h2><p class="muted">telegram бот для заявок, бот для бизнеса, бот для обработки лидов, уведомления о заявках, telegram crm</p></section>
-<a class="btn" href="https://t.me/LeadOpsStudioBot?start=seo_telegram_bot_dlya_zayavok">Проверить на моих заявках</a>
-<p class="links"><a href="/avtootvet-na-zayavki/">Автоответ</a><a href="/telegram-bot-dlya-zayavok/">Telegram-бот</a><a href="/crm-dlya-remonta/">CRM для ремонта</a></p>
-</main></body></html>
+<section class="visual">
+  <h2>Граница продукта</h2>
+  <div class="split">
+    <div class="panel">
+      <h3>Входит в пилот</h3>
+      <ul>
+        <li>Telegram-бот или маршрут заявки в Telegram</li>
+        <li>быстрый автоответ клиенту</li>
+        <li>короткая квалификация</li>
+        <li>карточка заявки менеджеру</li>
+        <li>статусы и ответственный</li>
+        <li>контроль зависшей заявки</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Не обещаем как CRM</h3>
+      <ul>
+        <li>1С, склад, сметы и документы</li>
+        <li>телефонию и сквозную аналитику</li>
+        <li>сложные сделки и длинные воронки</li>
+        <li>миграцию из Bitrix24/amoCRM</li>
+        <li>полноценный sales operations</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="visual">
+  <h2>Пример карточки заявки</h2>
+  <div class="panel card-preview">Новая заявка
+Источник: сайт / реклама / профиль
+Клиент: Андрей
+Контакт: +7...
+Задача: ремонт / услуга / консультация
+Срок: в течение месяца
+Комментарий: нужно понять порядок цены
+Статус: новая
+Кнопки: [Взял] [Связались] [Нужен звонок] [Нецелевой]</div>
+</section>
+
+<section class="visual">
+  <h2>Что смотрим в пилоте</h2>
+  <div class="funnel">
+    <div class="bar"><b>Заявки</b><div class="track"><div class="fill" style="width:100%"></div></div><span>100%</span></div>
+    <div class="bar"><b>Ответили</b><div class="track"><div class="fill" style="width:78%"></div></div><span>цель</span></div>
+    <div class="bar"><b>Взяли</b><div class="track"><div class="fill" style="width:62%"></div></div><span>цель</span></div>
+    <div class="bar"><b>Связались</b><div class="track"><div class="fill" style="width:48%"></div></div><span>факт</span></div>
+  </div>
+  <p class="note">Цифры на схеме — не обещание результата, а пример метрик, которые нужно начать измерять.</p>
+</section>
+<h2>Когда это подходит</h2><ul><li>заявки приходят с сайта, рекламы, профиля или мессенджеров;</li><li>важна скорость первого ответа;</li><li>менеджеров немного, а процесс пока простой;</li><li>нужно проверить новый канал или оффер без CRM-проекта.</li></ul><h2>Когда нужна полноценная CRM</h2><p>Если нужны телефония, 1С, склад, документы, длинные сделки, права доступа и отчёты по продажам — этот слой должен быть только входом перед CRM, а не заменой всей системы.</p><a class="cta" href="https://t.me/LeadOpsStudioBot?start=seo_telegram_bot_dlya_zayavok">Проверить на моих заявках</a><nav class="nav"><a href="/bot-dlya-priema-zayavok/">Бот для заявок</a><a href="/avtomatizaciya-obrabotki-zayavok/">Автоматизация</a><a href="/zayavki-s-saita-v-telegram/">Сайт → Telegram</a><a href="/bystryi-otvet-na-zayavku/">Быстрый ответ</a><a href="/obrabotka-zayavok-bez-crm/">Без CRM</a><a href="/crm-dlya-remonta/">Для ремонта</a></nav></main></body></html>
