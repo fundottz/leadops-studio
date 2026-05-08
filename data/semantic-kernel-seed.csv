@@ -1,0 +1,29 @@
+cluster,query,intent,stage,landing_page,priority,notes,volume_status
+core_speed_to_lead,автоответ на заявки,commercial/problem,solution-aware,/avtootvet-na-zayavki/,high,"узкий, но близко к офферу; проверить точную частотность",needs_wordstat
+core_speed_to_lead,быстрый ответ на заявку,informational/problem,problem-aware,/avtootvet-na-zayavki/,high,"может быть инфо/маркетинг, нужен контент с ROI",needs_wordstat
+core_speed_to_lead,скорость ответа на лид,informational/problem,problem-aware,/skorost-otveta-na-lid/,high,"хорошая экспертная статья + калькулятор потерь",needs_wordstat
+core_speed_to_lead,обработка входящих заявок,commercial/problem,solution-aware,/avtootvet-na-zayavki/,high,"шире оффера, вероятно живее",needs_wordstat
+core_speed_to_lead,автоматизация обработки заявок,commercial,solution-aware,/avtomatizaciya-zayavok/,high,"коммерческий запрос, конкуренция с CRM/интеграторами",needs_wordstat
+telegram_bot,telegram бот для заявок,commercial,solution-aware,/telegram-bot-dlya-zayavok/,high,"прямой запрос под текущий MVP",needs_wordstat
+telegram_bot,бот для приема заявок,commercial,solution-aware,/telegram-bot-dlya-zayavok/,high,"не только Telegram; можно посадить на страницу бота",needs_wordstat
+telegram_bot,бот для обработки заявок,commercial,solution-aware,/telegram-bot-dlya-zayavok/,high,"близко к офферу",needs_wordstat
+telegram_bot,заявки с сайта в telegram,commercial,solution-aware,/zayavki-s-saita-v-telegram/,high,"очень прикладной запрос, вероятно хороший intent",needs_wordstat
+telegram_bot,уведомления о заявках в telegram,commercial,solution-aware,/zayavki-s-saita-v-telegram/,medium,"может быть DIY-интеграция",needs_wordstat
+telegram_bot,форма сайта в telegram,commercial/DIY,solution-aware,/zayavki-s-saita-v-telegram/,medium,"часть аудитории хочет инструкцию, часть купит настройку",needs_wordstat
+crm_small_business,crm для малого бизнеса,commercial,solution-aware,/mini-crm-dlya-malogo-biznesa/,medium,"широко и конкурентно; посадочная должна отстроиться простотой",needs_wordstat
+crm_small_business,мини crm для малого бизнеса,commercial,solution-aware,/mini-crm-dlya-malogo-biznesa/,high,"лучше соответствует офферу",needs_wordstat
+crm_small_business,простая crm для заявок,commercial,solution-aware,/mini-crm-dlya-malogo-biznesa/,high,"важный кластер",needs_wordstat
+crm_small_business,crm для обработки заявок,commercial,solution-aware,/mini-crm-dlya-malogo-biznesa/,high,"прямой bridge между CRM и заявками",needs_wordstat
+crm_repair,crm для ремонта,commercial,niche-aware,/crm-dlya-remonta/,high,"ниша с дорогой заявкой; проверить спрос",needs_wordstat
+crm_repair,crm для прораба,commercial,niche-aware,/crm-dlya-remonta/,high,"очень нишевый, потенциально качественный",needs_wordstat
+crm_repair,crm для строительной компании,commercial,niche-aware,/crm-dlya-remonta/,medium,"шире, конкуренция с отраслевыми CRM",needs_wordstat
+crm_repair,заявки на ремонт crm,commercial,niche-aware,/crm-dlya-remonta/,medium,"низкочастотный, но релевантный",needs_wordstat
+crm_furniture,crm для мебельного производства,commercial,niche-aware,/crm-dlya-mebeli/,medium,"смежная ниша кухни/шкафы",needs_wordstat
+crm_furniture,crm для кухни на заказ,commercial,niche-aware,/crm-dlya-mebeli/,medium,"может быть слабая частотность, но дорогой лид",needs_wordstat
+avito,авито заявки в crm,commercial/channel-aware,/avito-zayavki-v-crm/,medium,"перспективно, но Avito интеграции могут быть сложнее",needs_wordstat
+avito,бот для авито заявок,commercial/channel-aware,/avito-zayavki-v-crm/,medium,"канальный интент",needs_wordstat
+whatsapp,whatsapp заявки в crm,commercial/channel-aware,/whatsapp-zayavki-v-crm/,medium,"может упереться в WhatsApp Business API",needs_wordstat
+whatsapp,бот для whatsapp заявок,commercial/channel-aware,/whatsapp-zayavki-v-crm/,medium,"конкуренция с WABA-интеграторами",needs_wordstat
+lead_management,система обработки лидов,commercial,solution-aware,/obrabotka-lidov/,medium,"более enterprise/B2B, но трафик может быть",needs_wordstat
+lead_management,управление лидами,commercial,solution-aware,/obrabotka-lidov/,low,"широко и далеко от малого бизнеса",needs_wordstat
+lead_management,лиды теряются что делать,informational/problem,problem-aware,/pochemu-teryayutsya-zayavki/,medium,"контент для верхней воронки",needs_wordstat
