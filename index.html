@@ -246,6 +246,29 @@
     h2 { margin: 8px 0 0; font-size: clamp(30px, 4.8vw, 48px); line-height: 1; letter-spacing: -.055em; }
     .section-copy { max-width: 560px; color: var(--muted); margin: 0; }
 
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: var(--foreground);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.15;
+    }
+    .links a:hover { background: var(--secondary-hover); }
+
     .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .card { padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); background: rgba(32,32,36,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.07); transition: transform .22s ease, border-color .22s ease, background .22s ease; }
     .card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,.18); background: rgba(39,39,42,.76); }
@@ -334,6 +357,8 @@
       .cta-row { gap: 8px; margin: 14px 0 14px; width: 100%; max-width: 100%; padding-right: 0; }
       .cta-row .btn { width: min(100%, 300px); max-width: 300px; min-height: 44px; padding-left: 12px; padding-right: 12px; }
       .section-head { display: block; }
+      .links { gap: 8px; }
+      .links a { width: 100%; justify-content: center; min-height: 44px; }
       .price { font-size: 38px; }
     }
   </style>
@@ -531,7 +556,7 @@
         </div>
       </div>
     </section>
-  <section class="section"><div class="section-head"><span class="eyebrow">Материалы</span><h2>Полезные разборы по обработке заявок</h2><p>Пять страниц без лишней SEO-кухни: как принимать заявки, быстро отвечать, передавать карточку менеджеру и не раздувать это до CRM-проекта.</p></div><div class="links"><a href="/bot-dlya-priema-zayavok/">Бот для приёма заявок</a><a href="/avtomatizaciya-obrabotki-zayavok/">Автоматизация обработки</a><a href="/zayavki-s-saita-v-telegram/">Заявки с сайта в Telegram</a><a href="/bystryi-otvet-na-zayavku/">Быстрый ответ</a><a href="/obrabotka-zayavok-bez-crm/">Обработка без CRM</a></div></section></main>
+  <section class="section"><div class="section-head"><span class="eyebrow">Материалы</span><h2>Полезные разборы по обработке заявок</h2><p>Короткие практические разборы: как принимать заявки, быстро отвечать и передавать карточку менеджеру без большого CRM-проекта.</p></div><div class="links"><a href="/bot-dlya-priema-zayavok/">Бот для приёма заявок</a><a href="/avtomatizaciya-obrabotki-zayavok/">Автоматизация обработки</a><a href="/zayavki-s-saita-v-telegram/">Заявки с сайта в Telegram</a><a href="/bystryi-otvet-na-zayavku/">Быстрый ответ</a><a href="/obrabotka-zayavok-bez-crm/">Обработка без CRM</a></div></section></main>
 
   <footer class="footer">
     <div class="container footer-inner">
